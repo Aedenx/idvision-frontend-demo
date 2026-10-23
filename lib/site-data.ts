@@ -1,9 +1,6 @@
 // Base URL Backend PHP Localhost Laragon
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost/idvision/backend/api";
-
+  "https://f9de-103-83-179-182.ngrok-free.app/idvision/backend/api";
 const FETCH_HEADERS = {
   Accept: "application/json",
 };

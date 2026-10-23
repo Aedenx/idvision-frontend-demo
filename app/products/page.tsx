@@ -2,8 +2,11 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getProducts } from "@/lib/site-data";
 import ProductCard from "@/components/product/product-card";
+
+// Domain Ngrok Tunnel ke Laragon Lokal
+const NGROK_BASE_URL =
+  "https://f9de-103-83-179-182.ngrok-free.app/idvision/backend/api";
 
 function ProductsContent() {
   const searchParams = useSearchParams();
@@ -18,33 +21,80 @@ function ProductsContent() {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // 1. Ambil Kategori dari Backend Laragon via Ngrok Tunnel
   useEffect(() => {
-    fetch("http://localhost/idvision/backend/api/categories/index.php")
+    fetch(`${NGROK_BASE_URL}/categories/index.php`, {
+      headers: {
+        "ngrok-skip-browser-warning": "true",
+        Accept: "application/json",
+      },
+    })
       .then((res) => res.json())
       .then((resData) => {
-        if (resData && resData.data) {
-          setCategories(resData.data);
-        }
+        const catArray = Array.isArray(resData) ? resData : resData?.data || [];
+        setCategories(catArray);
       })
-      .catch((err) => console.error("Gagal mengambil kategori:", err));
+      .catch((err) =>
+        console.error("Gagal mengambil kategori via Ngrok:", err),
+      );
   }, []);
 
+  // 2. Ambil Daftar Produk dari Backend Laragon via Ngrok Tunnel
   useEffect(() => {
     setLoading(true);
 
-    // DIBERSIHKAN: Hanya kirim category agar tidak terjadi duplikasi query di backend
-    getProducts({
-      category: selectedCategory || undefined,
-      sort: selectedSort,
-      search: search || undefined,
-    }).then((data) => {
-      if (data && data.data) {
-        setProducts(data.data);
-      } else {
+    const queryParams = new URLSearchParams();
+    if (selectedCategory) queryParams.append("category", selectedCategory);
+    if (selectedSort) queryParams.append("sort", selectedSort);
+    if (search) queryParams.append("search", search);
+
+    fetch(`${NGROK_BASE_URL}/products/index.php?${queryParams.toString()}`, {
+      headers: {
+        "ngrok-skip-browser-warning": "true",
+        Accept: "application/json",
+      },
+    })
+      .then((res) => res.json())
+      .then((resData) => {
+        const prodArray = Array.isArray(resData)
+          ? resData
+          : resData?.data || [];
+
+        // Transformasi data agar atribut sesuai dengan komponen ProductCard
+        const mapped = prodArray.map((p: any) => ({
+          id: p.product_id || p.id,
+          product_id: p.product_id || p.id,
+          name: p.name || "Kacamata IDVISION",
+          slug: p.slug || "",
+          sku: p.sku_base || "",
+          description: p.description || "",
+          price: Number(p.base_price || p.price || 0),
+          base_price: Number(p.base_price || p.price || 0),
+          discount_price: p.discount_price ? Number(p.discount_price) : null,
+          discount_percent: Number(p.discount_percent || 0),
+          gender: p.category_name || "Unisex",
+          category_name: p.category_name || "Unisex",
+          category_slug: p.category_slug || "",
+          image:
+            p.image_url ||
+            p.image ||
+            "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600",
+          image_url:
+            p.image_url ||
+            p.image ||
+            "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600",
+          stock: Number(p.total_stock || 0),
+          is_featured: Boolean(p.is_featured),
+        }));
+
+        setProducts(mapped);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Gagal mengambil produk via Ngrok:", err);
         setProducts([]);
-      }
-      setLoading(false);
-    });
+        setLoading(false);
+      });
   }, [selectedCategory, selectedSort, search]);
 
   const handleFilterChange = (key: string, value: string) => {
@@ -75,7 +125,7 @@ function ProductsContent() {
           </p>
         </div>
 
-        {/* KELOMPOK FILTER TERPADU (LIGHT & DARK DUAL MODE) */}
+        {/* KELOMPOK FILTER TERPADU */}
         <div className="flex self-start items-center rounded-xl border border-zinc-200 bg-white p-1 shadow-xs backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/90 md:self-auto">
           {/* Filter Kategori */}
           <select
