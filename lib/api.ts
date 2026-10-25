@@ -1,169 +1,278 @@
-const getBaseUrl = () => {
+/**
+ * Konfigurasi Base URL untuk Next.js Route Handlers & Asset Statis Gambar
+ */
+const getApiBaseUrl = (): string => {
   if (typeof window !== "undefined") {
-    // Saat berjalan di browser pengguna
-    return (
-      process.env.NEXT_PUBLIC_API_BASE_URL ||
-      "https://ikhwanvision.freedev.app/backend/api"
-    );
+    return "/api";
   }
-  // Fallback saat build time
-  return (
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    "https://ikhwanvision.freedev.app/backend/api"
-  );
+
+  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (envUrl && envUrl.startsWith("http")) {
+    return envUrl.replace(/\/+$/, "");
+  }
+
+  return "http://localhost:3000/api";
 };
 
-export async function getProducts(params?: {
-  gender?: string;
-  search?: string;
-  page?: number;
-}) {
+export const API_BASE_URL = getApiBaseUrl();
+
+// Path relatif lokasi penyimpanan gambar
+export const STORAGE_URL = process.env.NEXT_PUBLIC_STORAGE_URL || "/uploads";
+
+/**
+ * Helper untuk mendapatkan URL lengkap gambar produk / kategori / banner
+ */
+export function getImageUrl(
+  path: string | null | undefined,
+  defaultType: "products" | "categories" | "banners" = "products",
+): string {
+  if (!path) {
+    return "/images/placeholder.jpg";
+  }
+
+  // Jika di DB masih tersimpan URL lokal PHP/Unsplash/S3 eksternal, ambil hanya nama filenya
+  let cleanPath = path;
+  if (cleanPath.includes("/uploads/")) {
+    cleanPath = cleanPath.split("/uploads/").pop() || cleanPath;
+  }
+
+  // Jika berupa URL eksternal murni (seperti Unsplash/Cloudinary)
+  if (cleanPath.startsWith("http://") || cleanPath.startsWith("https://")) {
+    return cleanPath;
+  }
+
+  // Bersihkan slash di awal
+  cleanPath = cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath;
+
+  // Jika path sudah mencakup folder publik seperti 'products/', 'categories/', atau 'banners/'
+  if (
+    cleanPath.startsWith("products/") ||
+    cleanPath.startsWith("categories/") ||
+    cleanPath.startsWith("banners/")
+  ) {
+    return `/${cleanPath.startsWith("uploads/") ? cleanPath : `uploads/${cleanPath}`}`;
+  }
+
+  // Menambahkan folder default jika hanya nama file yang dikirim
+  return `${STORAGE_URL}/${defaultType}/${cleanPath}`;
+}
+
+/**
+ * Universal Fetcher dengan Handling Error & Default Headers
+ */
+export async function fetchFromApi<T = any>(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+
+  const baseUrl = typeof window !== "undefined" ? "/api" : API_BASE_URL;
+  const url = `${baseUrl}${cleanEndpoint}`;
+
+  const defaultHeaders: HeadersInit = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+
   try {
-    const queryParams = new URLSearchParams();
-
-    if (params?.gender) {
-      const g = params.gender.toLowerCase();
-      if (g === "pria") queryParams.append("category", "men");
-      else if (g === "wanita") queryParams.append("category", "women");
-      else queryParams.append("category", g);
-    }
-
-    const url = `${getBaseUrl()}/products/index.php?${queryParams.toString()}`;
-
-    // fetch langsung dari browser
-    const res = await fetch(url, {
-      method: "GET",
+    const response = await fetch(url, {
+      ...options,
       headers: {
-        Accept: "application/json",
+        ...defaultHeaders,
+        ...options.headers,
       },
-      cache: "no-store",
     });
 
-    if (!res.ok) return { data: [] };
-
-    const result = await res.json();
-    const rawData = result.data || [];
-
-    let mappedData = rawData.map((item: any) => ({
-      id: item.product_id,
-      product_id: item.product_id,
-      name: item.name,
-      slug: item.slug,
-      sku: item.sku_base,
-      description: item.description,
-      price: Number(item.base_price || 0),
-      base_price: Number(item.base_price || 0),
-      category: {
-        name: item.category_name || "Unisex",
-        slug: item.category_slug || "unisex",
-      },
-      category_name: item.category_name || "Unisex",
-      image:
-        item.image_url ||
-        "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600",
-      image_url:
-        item.image_url ||
-        "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600",
-      stock: Number(item.total_stock || 0),
-      is_featured: Boolean(item.is_featured),
-    }));
-
-    if (params?.search && Array.isArray(mappedData)) {
-      const q = params.search.toLowerCase();
-      mappedData = mappedData.filter(
-        (p: any) =>
-          p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q),
+    if (!response.ok) {
+      throw new Error(
+        `HTTP Error! Status: ${response.status} ${response.statusText}`,
       );
     }
 
-    return { data: mappedData };
+    const data = await response.json();
+    return data;
   } catch (error) {
-    console.error("Error fetching products:", error);
-    return { data: [] };
+    console.error(
+      `[API Fetch Error] Failed to fetch endpoint: ${cleanEndpoint}`,
+      error,
+    );
+    throw error;
   }
 }
 
-export async function getProductBySlugFromApi(slugOrId: string) {
+/* ==========================================================================
+   INTERFACES & TYPES
+   ========================================================================== */
+
+export interface ProductQueryParams {
+  category?: string;
+  gender?: string;
+  search?: string;
+  sort?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface Product {
+  id: number;
+  product_id: number;
+  name: string;
+  slug: string;
+  sku: string;
+  description: string;
+  price: number;
+  base_price: number;
+  discount_percent: number;
+  discount_price: number | null;
+  category: {
+    name: string;
+    slug: string;
+  };
+  category_name: string;
+  image: string;
+  image_url: string;
+  stock: number;
+  is_featured: boolean;
+  variants?: any[];
+  images?: any[];
+}
+
+/* ==========================================================================
+   ENDPOINT API PRODUCTS & CATEGORIES
+   ========================================================================== */
+
+export async function getProducts(params?: ProductQueryParams) {
   try {
-    const res = await fetch(
-      `${getBaseUrl()}/products/index.php?slug=${encodeURIComponent(slugOrId)}`,
-      { cache: "no-store" },
-    );
+    const queryParams = new URLSearchParams();
+    if (params?.category) queryParams.append("category", params.category);
+    if (params?.gender) queryParams.append("gender", params.gender);
+    if (params?.search) queryParams.append("search", params.search);
+    if (params?.sort) queryParams.append("sort", params.sort);
+    if (params?.page) queryParams.append("page", params.page.toString());
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
 
-    if (!res.ok) return null;
+    const queryString = queryParams.toString();
+    const endpoint = `/products${queryString ? `?${queryString}` : ""}`;
 
-    const result = await res.json();
-    const item = result.data;
-    if (!item) return null;
+    const res = await fetchFromApi(endpoint, { cache: "no-store" });
 
-    return {
-      id: item.product_id,
-      product_id: item.product_id,
-      name: item.name,
-      slug: item.slug,
-      sku: item.sku_base,
-      description: item.description,
-      price: Number(item.base_price || 0),
-      base_price: Number(item.base_price || 0),
+    const rawData = Array.isArray(res) ? res : res.data || [];
+
+    const mappedData: Product[] = rawData.map((item: any) => ({
+      id: item.product_id || item.id,
+      product_id: item.product_id || item.id,
+      name: item.name || "Kacamata IDVISION",
+      slug: item.slug || "",
+      sku: item.sku_base || item.sku || "",
+      description: item.description || "",
+      price: Number(item.base_price || item.price || 0),
+      base_price: Number(item.base_price || item.price || 0),
+      discount_percent: Number(item.discount_percent || 0),
+      discount_price: item.discount_price ? Number(item.discount_price) : null,
       category: {
         name: item.category_name || "Unisex",
         slug: item.category_slug || "unisex",
       },
       category_name: item.category_name || "Unisex",
-      image:
-        item.image_url ||
-        "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600",
-      image_url:
-        item.image_url ||
-        "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600",
-      stock: item.variants?.[0]?.stock_quantity ?? 15,
-      variants: item.variants || [],
-    };
+      image: getImageUrl(item.image_url || item.image, "products"),
+      image_url: getImageUrl(item.image_url || item.image, "products"),
+      stock: Number(item.total_stock || item.stock || 0),
+      is_featured: Boolean(item.is_featured),
+    }));
+
+    return { success: true, data: mappedData };
   } catch (error) {
-    console.error("Error fetching product detail:", error);
-    return null;
+    console.error("Error in getProducts:", error);
+    return { success: false, message: "Gagal memuat produk", data: [] };
   }
 }
 
-export async function getProductsFromApi() {
-  const res = await getProducts();
-  return res.data;
-}
-
-export async function getProductsApi() {
-  const res = await getProducts();
-  return res.data;
-}
-
-export async function getProductBySlugApi(slug: string) {
-  return await getProductBySlugFromApi(slug);
-}
-
-export async function processCheckout(payload: {
-  customer_name: string;
-  customer_email?: string;
-  customer_phone: string;
-  address: string;
-  items: Array<{
-    id: number | string;
-    product_id?: number | string;
-    variant_id?: number;
-    price: number;
-    quantity: number;
-  }>;
-}) {
+export async function getProductBySlug(slug: string) {
   try {
-    const res = await fetch(`${getBaseUrl()}/orders/checkout.php`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const res = await fetchFromApi(
+      `/products/detail?slug=${encodeURIComponent(slug)}`,
+      { cache: "no-store" },
+    );
+
+    const item = res.data || res;
+    if (!item)
+      return { success: false, message: "Produk tidak ditemukan", data: null };
+
+    const formattedProduct: Product = {
+      id: item.product_id || item.id,
+      product_id: item.product_id || item.id,
+      name: item.name || "Kacamata IDVISION",
+      slug: item.slug || "",
+      sku: item.sku_base || item.sku || "",
+      description: item.description || "",
+      price: Number(item.base_price || item.price || 0),
+      base_price: Number(item.base_price || item.price || 0),
+      discount_percent: Number(item.discount_percent || 0),
+      discount_price: item.discount_price ? Number(item.discount_price) : null,
+      category: {
+        name: item.category_name || "Unisex",
+        slug: item.category_slug || "unisex",
       },
+      category_name: item.category_name || "Unisex",
+      image: getImageUrl(item.image_url || item.image, "products"),
+      image_url: getImageUrl(item.image_url || item.image, "products"),
+      stock: item.variants?.[0]?.stock_quantity ?? item.total_stock ?? 0,
+      is_featured: Boolean(item.is_featured),
+      variants: item.variants || [],
+      images: item.images || [],
+    };
+
+    return { success: true, data: formattedProduct };
+  } catch (error) {
+    return {
+      success: false,
+      message: "Detail produk tidak ditemukan",
+      data: null,
+    };
+  }
+}
+
+export async function getCategories() {
+  try {
+    const res = await fetchFromApi("/categories", { cache: "no-store" });
+    return {
+      success: true,
+      data: Array.isArray(res) ? res : res.data || [],
+    };
+  } catch (error) {
+    return { success: false, message: "Gagal memuat kategori", data: [] };
+  }
+}
+
+/* ==========================================================================
+   ENDPOINT TRANSAKSI & CHECKOUT
+   ========================================================================== */
+
+export async function processCheckout(payload: any) {
+  try {
+    return await fetchFromApi("/orders/checkout", {
+      method: "POST",
       body: JSON.stringify(payload),
     });
-
-    return await res.json();
   } catch (error) {
-    console.error("Error submitting checkout:", error);
-    return { status: "error", message: "Gagal terhubung ke server checkout." };
+    return {
+      success: false,
+      message: "Gagal memproses transaksi. Silakan coba beberapa saat lagi.",
+    };
+  }
+}
+
+export async function getOrderStatus(orderId: string) {
+  try {
+    return await fetchFromApi(
+      `/orders/status?order_id=${encodeURIComponent(orderId)}`,
+      { cache: "no-store" },
+    );
+  } catch (error) {
+    return {
+      success: false,
+      message: "Gagal mengambil status pesanan",
+      data: null,
+    };
   }
 }

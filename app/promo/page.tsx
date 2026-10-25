@@ -19,15 +19,16 @@ export default function PromoPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost/idvision/backend/api/products/index.php")
+    fetch("/api/products/index")
       .then((res) => res.json())
       .then((resData) => {
-        if (resData && resData.data) {
-          const promo = resData.data.filter(
+        const productList = resData?.data || resData?.products || [];
+        if (Array.isArray(productList)) {
+          const promo = productList.filter(
             (p: any) => Number(p.discount_percent || 0) > 0,
           );
           setDiscountedProducts(
-            promo.length > 0 ? promo : resData.data.slice(0, 8),
+            promo.length > 0 ? promo : productList.slice(0, 8),
           );
         }
         setLoading(false);
@@ -100,7 +101,7 @@ export default function PromoPage() {
           </div>
 
           <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-6 shadow-xs flex items-start gap-4">
-            <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-500 shrink-0">
+            <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-500 shrink-0">
               <ShieldCheck size={22} />
             </div>
             <div className="space-y-1">

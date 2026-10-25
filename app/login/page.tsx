@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock, User, Phone, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { getSiteSettings } from "@/lib/site-data";
+import { getImageUrl } from "@/lib/api";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -15,7 +16,6 @@ export default function AuthPage() {
   const [successMsg, setSuccessMsg] = useState("");
   const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
 
-  // Form State
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -23,7 +23,6 @@ export default function AuthPage() {
     password: "",
   });
 
-  // FETCH BRANDING LOGO & NAMA TOKO
   useEffect(() => {
     getSiteSettings().then((data) => {
       if (data) setSiteSettings(data);
@@ -40,9 +39,7 @@ export default function AuthPage() {
     setErrorMsg("");
     setSuccessMsg("");
 
-    const endpoint = isRegister
-      ? "http://localhost/idvision/backend/api/auth/register.php"
-      : "http://localhost/idvision/backend/api/auth/login.php";
+    const endpoint = isRegister ? "/api/auth/register" : "/api/auth/login";
 
     try {
       const res = await fetch(endpoint, {
@@ -61,7 +58,7 @@ export default function AuthPage() {
         } else {
           localStorage.setItem(
             "customer_token",
-            data.token || "token_idvision_user",
+            data.token || "token_idvisionstore.web.id_user",
           );
           localStorage.setItem("customer_user", JSON.stringify(data.user));
 
@@ -80,20 +77,24 @@ export default function AuthPage() {
   };
 
   const siteName = siteSettings.site_name || "IDVISION";
-  const logoPath = siteSettings.site_logo || siteSettings.logo;
+  const rawLogo = siteSettings.site_logo || siteSettings.logo;
 
-  const logoUrl = logoPath
-    ? logoPath.startsWith("http")
-      ? logoPath
-      : `http://localhost/idvision/backend/uploads/${logoPath.replace(/^\//, "")}`
-    : "http://localhost/idvision/backend/uploads/logo.png";
+  // Logika pembacaan URL Logo yang komprehensif
+  const getLogoSrc = (path?: string) => {
+    if (!path) return "/images/logo.png";
+    if (path.startsWith("http://") || path.startsWith("https://")) return path;
+    if (path.startsWith("/")) return path;
+
+    // Gunakan helper getImageUrl atau arahkan ke folder upload
+    return getImageUrl(path, "uploads") || `/uploads/${path}`;
+  };
+
+  const logoUrl = getLogoSrc(rawLogo);
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-white text-zinc-900 dark:bg-black dark:text-white transition-colors duration-300 flex items-center justify-center py-12 px-4 md:px-8">
       <main className="w-full max-w-md">
-        {/* CARD AUTHENTICATION */}
         <div className="rounded-3xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/60 p-6 sm:p-8 shadow-xl space-y-6">
-          {/* HEADER FORM (SAMA PERSIS DENGAN BRANDING NAVBAR) */}
           <div className="text-center space-y-3">
             <Link
               href="/"
@@ -104,8 +105,13 @@ export default function AuthPage() {
                 alt={siteName}
                 className="h-8 w-auto object-contain transition-transform group-hover:scale-105"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    "http://localhost/idvision/backend/uploads/logo.png";
+                  // Fallback bertingkat jika gambar gagal di-load
+                  const target = e.target as HTMLImageElement;
+                  if (target.src.includes("/images/logo.png")) {
+                    target.src = "/images/placeholder.jpg";
+                  } else {
+                    target.src = "/images/logo.png";
+                  }
                 }}
               />
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-700 dark:text-zinc-300 mt-1">
@@ -126,7 +132,6 @@ export default function AuthPage() {
             </p>
           </div>
 
-          {/* NOTIFIKASI ERROR / SUCCESS */}
           {errorMsg && (
             <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs font-semibold text-red-600 dark:text-red-400 text-center">
               {errorMsg}
@@ -138,9 +143,7 @@ export default function AuthPage() {
             </div>
           )}
 
-          {/* FORM INPUTS */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* INPUT NAMA (KHUSUS REGISTER) */}
             {isRegister && (
               <div>
                 <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1">
@@ -164,7 +167,6 @@ export default function AuthPage() {
               </div>
             )}
 
-            {/* INPUT EMAIL */}
             <div>
               <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1">
                 Alamat Email
@@ -186,7 +188,6 @@ export default function AuthPage() {
               </div>
             </div>
 
-            {/* INPUT TELEPON / WHATSAPP (KHUSUS REGISTER) */}
             {isRegister && (
               <div>
                 <label className="block text-[11px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1">
@@ -210,7 +211,6 @@ export default function AuthPage() {
               </div>
             )}
 
-            {/* INPUT PASSWORD */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-[11px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
@@ -249,7 +249,6 @@ export default function AuthPage() {
               </div>
             </div>
 
-            {/* TOMBOL SUBMIT */}
             <div className="pt-2">
               <button
                 type="submit"
@@ -268,7 +267,6 @@ export default function AuthPage() {
             </div>
           </form>
 
-          {/* TOGGLE ANTARA LOGIN & REGISTER */}
           <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 text-center text-xs">
             <span className="text-zinc-500 dark:text-zinc-400">
               {isRegister

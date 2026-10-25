@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { showErrorAlert, showSuccessAlert } from "@/lib/alert";
+import { getImageUrl } from "@/lib/api";
 
 declare global {
   interface Window {
@@ -109,31 +110,28 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(
-        "http://localhost/idvision/backend/api/orders/checkout.php",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_id: formData.userId,
-            name: formData.name,
-            customer_name: formData.name,
-            email: formData.email,
-            customer_email: formData.email,
-            phone: formData.phone,
-            customer_phone: formData.phone,
-            address: formData.address,
-            payment_method: paymentMethod,
-            items: items.map((i) => ({
-              id: i.id,
-              product_id: i.id,
-              name: i.name,
-              quantity: i.quantity,
-              price: i.price,
-            })),
-          }),
-        },
-      );
+      const res = await fetch("/api/orders/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: formData.userId,
+          name: formData.name,
+          customer_name: formData.name,
+          email: formData.email,
+          customer_email: formData.email,
+          phone: formData.phone,
+          customer_phone: formData.phone,
+          address: formData.address,
+          payment_method: paymentMethod,
+          items: items.map((i) => ({
+            id: i.id,
+            product_id: i.id,
+            name: i.name,
+            quantity: i.quantity,
+            price: i.price,
+          })),
+        }),
+      });
 
       const result = await res.json();
 
@@ -384,12 +382,7 @@ export default function CheckoutPage() {
             </h2>
             <div className="divide-y divide-zinc-100 dark:divide-zinc-800/80 max-h-80 overflow-y-auto pr-1 scrollbar-hide">
               {items.map((item) => {
-                const rawImage = item.image || "";
-                const itemImage = rawImage.startsWith("http")
-                  ? rawImage
-                  : rawImage
-                    ? `http://localhost/idvision/backend/uploads/products/${rawImage}`
-                    : "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600";
+                const itemImage = getImageUrl(item.image, "products");
 
                 return (
                   <div key={item.id} className="py-3 flex gap-3 items-center">
@@ -397,6 +390,10 @@ export default function CheckoutPage() {
                       src={itemImage}
                       alt={item.name}
                       className="h-12 w-12 object-contain rounded-lg bg-zinc-50 dark:bg-zinc-950 p-1 border border-zinc-200 dark:border-zinc-800 shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          "/images/placeholder.jpg";
+                      }}
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold truncate text-zinc-900 dark:text-white">

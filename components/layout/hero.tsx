@@ -51,9 +51,9 @@ export default function Hero() {
 
           {/* Subdeskripsi */}
           <p className="mt-6 max-w-xl text-xs font-medium leading-relaxed text-zinc-300 sm:text-sm md:text-base drop-shadow">
-            Kacamata outdoor idvision dirancang khusus untuk petualangan ekstrem
-            — frame titanium ultra-ringan, lensa polarized UV400, dan karakter
-            tangguh yang siap menaklukkan setiap puncak.
+            Kacamata outdoor idvisionstore.web.id dirancang khusus untuk
+            petualangan ekstrem — frame titanium ultra-ringan, lensa polarized
+            UV400, dan karakter tangguh yang siap menaklukkan setiap puncak.
           </p>
 
           {/* Tombol Aksi (CTA) */}

@@ -16,16 +16,6 @@ import RunningText from "@/components/home/running-text";
 import HeroSlider from "@/components/layout/hero-slider";
 import ProductCard from "@/components/product/product-card";
 
-// URL Base Backend (Mendukung Localhost Laragon & Env Variable)
-const getApiBaseUrl = () => {
-  const envUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL;
-  if (envUrl && envUrl.startsWith("http")) {
-    return envUrl.replace(/\/+$/, "");
-  }
-  return "http://localhost/idvision/backend/api";
-};
-
 export default function HomePage() {
   const [promoProducts, setPromoProducts] = useState<any[]>([]);
   const [popularProducts, setPopularProducts] = useState<any[]>([]);
@@ -33,14 +23,10 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const baseUrl = getApiBaseUrl();
-
-    // 1. Fetch Produk dari Backend PHP Localhost
-    fetch(`${baseUrl}/products/index.php`, {
+    // 1. Fetch Produk dari Route Handler Next.js
+    fetch("/api/products/index", {
       method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
+      headers: { Accept: "application/json" },
     })
       .then((res) => res.json())
       .then((resData) => {
@@ -63,12 +49,10 @@ export default function HomePage() {
         setLoading(false);
       });
 
-    // 2. Fetch Kategori dari Backend PHP Localhost
-    fetch(`${baseUrl}/categories/index.php`, {
+    // 2. Fetch Kategori dari Route Handler Next.js
+    fetch("/api/categories/index", {
       method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
+      headers: { Accept: "application/json" },
     })
       .then((res) => res.json())
       .then((resData) => {
@@ -79,11 +63,10 @@ export default function HomePage() {
       .catch((err) => console.error("Gagal mengambil kategori:", err));
   }, []);
 
-  // Ambil URL Gambar Kategori dari Backend Laragon
   const getCategoryImage = (cat: any) => {
     if (cat.image_url) return cat.image_url;
     if (cat.image_path) {
-      return `http://localhost/idvision/backend/uploads/categories/${cat.image_path}`;
+      return `/uploads/categories/${cat.image_path}`;
     }
     return null;
   };
@@ -96,7 +79,7 @@ export default function HomePage() {
       {/* RUNNING TEXT PROMO MARQUEE */}
       <RunningText />
 
-      {/* KATEGORI PILIHAN (STYLE EIGER BACKGROUND BANNER) */}
+      {/* KATEGORI PILIHAN */}
       <section className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="mb-6 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-4">
           <div>
@@ -104,7 +87,7 @@ export default function HomePage() {
               <Sparkles
                 size={18}
                 className="text-emerald-500 dark:text-emerald-400"
-              />{" "}
+              />
               Kategori Pilihan
             </h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
@@ -113,7 +96,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Banner Card Grid Style Eiger */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(categories.length > 0
             ? categories
@@ -124,7 +106,6 @@ export default function HomePage() {
               ]
           ).map((cat, idx) => {
             const bgImage = getCategoryImage(cat);
-            // Utamakan slug dari DB, jika tidak ada baru konversi dari nama
             const catSlug = cat.slug || cat.name.toLowerCase().trim();
 
             return (
@@ -133,7 +114,6 @@ export default function HomePage() {
                 href={`/products?category=${encodeURIComponent(catSlug)}`}
                 className="group relative h-80 w-full overflow-hidden rounded-2xl shadow-md transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 bg-zinc-800 block cursor-pointer"
               >
-                {/* Render Gambar Asli Backend jika ada */}
                 {bgImage ? (
                   <img
                     src={bgImage}
@@ -141,20 +121,15 @@ export default function HomePage() {
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
                 ) : (
-                  /* Gradient Hitam Elegan Fallback */
                   <div className="h-full w-full bg-gradient-to-br from-zinc-800 via-zinc-900 to-black transition-transform duration-700 group-hover:scale-105" />
                 )}
 
-                {/* Dark Overlay untuk legibilitas teks */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10 transition-opacity group-hover:opacity-90 pointer-events-none" />
 
-                {/* Teks Kategori Tengah bergaya Eiger */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center pointer-events-none">
                   <h3 className="text-3xl font-black italic uppercase tracking-wider text-white drop-shadow-md group-hover:scale-105 transition-transform duration-300">
                     {cat.name}
                   </h3>
-
-                  {/* Tombol Jelajahi saat Hover */}
                   <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1.5 text-xs font-bold text-white backdrop-blur-md opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2">
                     Jelajahi <ArrowRight size={14} />
                   </span>
@@ -209,7 +184,7 @@ export default function HomePage() {
               <Award
                 size={18}
                 className="text-emerald-500 dark:text-emerald-400"
-              />{" "}
+              />
               Koleksi Kacamata Terpopuler
             </h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">

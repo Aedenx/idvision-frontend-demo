@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import CartDrawer from "@/components/cart/cart-drawer";
-import { getSiteSettings, getProducts } from "@/lib/site-data";
+import { getSiteSettings } from "@/lib/site-data";
+import { getProducts } from "@/lib/api";
 
 export default function Navbar() {
   const router = useRouter();
@@ -158,8 +159,8 @@ export default function Navbar() {
   const logoUrl = logoPath
     ? logoPath.startsWith("http")
       ? logoPath
-      : `http://localhost/idvision/backend/uploads/${logoPath.replace(/^\//, "")}`
-    : "http://localhost/idvision/backend/uploads/logo.png";
+      : `/uploads/${logoPath.replace(/^\//, "")}`
+    : "/images/logo.png";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md">
@@ -173,8 +174,7 @@ export default function Navbar() {
             alt={siteName}
             className="h-6 w-auto object-contain transition-transform group-hover:scale-105 md:h-7"
             onError={(e) => {
-              (e.target as HTMLImageElement).src =
-                "http://localhost/idvision/backend/uploads/logo.png";
+              (e.target as HTMLImageElement).src = "/images/logo.png";
             }}
           />
           <span className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-300 md:text-[10px] mt-0.5">
@@ -310,7 +310,8 @@ export default function Navbar() {
                           <img
                             src={
                               item.image_url ||
-                              "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600"
+                              item.image ||
+                              "/images/placeholder.jpg"
                             }
                             alt={item.name}
                             className="h-9 w-9 rounded-md object-contain bg-zinc-950 p-1 border border-zinc-800"
@@ -322,7 +323,9 @@ export default function Navbar() {
                             <div className="text-[10px] text-emerald-400 font-semibold">
                               {item.category_name || item.gender} &bull; Rp{" "}
                               {(
-                                item.discount_price || item.base_price
+                                item.discount_price ||
+                                item.base_price ||
+                                item.price
                               ).toLocaleString("id-ID")}
                             </div>
                           </div>

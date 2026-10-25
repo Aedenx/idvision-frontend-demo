@@ -4,10 +4,6 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import ProductCard from "@/components/product/product-card";
 
-// Domain Ngrok Tunnel ke Laragon Lokal
-const NGROK_BASE_URL =
-  "https://f9de-103-83-179-182.ngrok-free.app/idvision/backend/api";
-
 function ProductsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -21,25 +17,18 @@ function ProductsContent() {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Ambil Kategori dari Backend Laragon via Ngrok Tunnel
+  // 1. Ambil Kategori dari Internal Route Handler Next.js
   useEffect(() => {
-    fetch(`${NGROK_BASE_URL}/categories/index.php`, {
-      headers: {
-        "ngrok-skip-browser-warning": "true",
-        Accept: "application/json",
-      },
-    })
+    fetch("/api/categories/index")
       .then((res) => res.json())
       .then((resData) => {
         const catArray = Array.isArray(resData) ? resData : resData?.data || [];
         setCategories(catArray);
       })
-      .catch((err) =>
-        console.error("Gagal mengambil kategori via Ngrok:", err),
-      );
+      .catch((err) => console.error("Gagal mengambil kategori:", err));
   }, []);
 
-  // 2. Ambil Daftar Produk dari Backend Laragon via Ngrok Tunnel
+  // 2. Ambil Daftar Produk dengan Query Filter dari Internal Route Handler Next.js
   useEffect(() => {
     setLoading(true);
 
@@ -48,19 +37,16 @@ function ProductsContent() {
     if (selectedSort) queryParams.append("sort", selectedSort);
     if (search) queryParams.append("search", search);
 
-    fetch(`${NGROK_BASE_URL}/products/index.php?${queryParams.toString()}`, {
-      headers: {
-        "ngrok-skip-browser-warning": "true",
-        Accept: "application/json",
-      },
-    })
+    const url = `/api/products/index?${queryParams.toString()}`;
+
+    fetch(url)
       .then((res) => res.json())
       .then((resData) => {
         const prodArray = Array.isArray(resData)
           ? resData
           : resData?.data || [];
 
-        // Transformasi data agar atribut sesuai dengan komponen ProductCard
+        // Mapping atribut agar konsisten dengan komponen ProductCard
         const mapped = prodArray.map((p: any) => ({
           id: p.product_id || p.id,
           product_id: p.product_id || p.id,
@@ -91,7 +77,7 @@ function ProductsContent() {
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Gagal mengambil produk via Ngrok:", err);
+        console.error("Gagal mengambil produk:", err);
         setProducts([]);
         setLoading(false);
       });

@@ -27,19 +27,20 @@ export default function Footer() {
   const siteDescription =
     siteSettings.site_description || "Kacamata Gaya & Outdoor IDVISION";
   const address =
-    siteSettings.address || "Jl. Pahlawan No. 15, Magelang, Jawa Tengah 56111";
+    siteSettings.address ||
+    "Jl. Raya Puspiptek, Buaran, Serpong, Tangerang Selatan";
   const phone = siteSettings.phone || "0858-7766-9323";
   const email = siteSettings.email || "support@idvision.com";
   const whatsappNumber = siteSettings.whatsapp_number || "6285877669323";
 
-  // URL Logo disesuaikan ke folder backend uploads IDVISION
+  // URL Logo disesuaikan ke folder public Next.js
   const logoPath =
     siteSettings.footer_logo || siteSettings.site_logo || siteSettings.logo;
   const logoFooterUrl = logoPath
-    ? logoPath.startsWith("http")
+    ? logoPath.startsWith("http") || logoPath.startsWith("/")
       ? logoPath
-      : `http://localhost/idvision/backend/uploads/${logoPath.replace(/^\//, "")}`
-    : "http://localhost/idvision/backend/uploads/logo.png";
+      : `/uploads/${logoPath.replace(/^\//, "")}`
+    : "/images/logo.png";
 
   const defaultMessage = encodeURIComponent(
     `Halo ${siteName}, saya ingin bertanya tentang produk kacamata gaya.`,
@@ -61,8 +62,7 @@ export default function Footer() {
                 alt={siteName}
                 className="h-8 w-auto object-contain transition-transform group-hover:scale-105"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    "http://localhost/idvision/backend/uploads/logo.png";
+                  (e.target as HTMLImageElement).src = "/images/logo.png";
                 }}
               />
               <span className="text-xs font-black uppercase tracking-[0.25em] text-zinc-900 dark:text-zinc-200 mt-1">
@@ -123,7 +123,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Kolom 2: Navigasi Cepat (Persis seperti Navbar) */}
+          {/* Kolom 2: Navigasi Cepat */}
           <div className="space-y-3">
             <h3 className="text-xs font-black uppercase tracking-widest text-zinc-900 dark:text-white">
               Navigasi Halaman
@@ -180,7 +180,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Kolom 3: Kategori Produk (Persis Kategori Database) */}
+          {/* Kolom 3: Kategori Produk */}
           <div className="space-y-3">
             <h3 className="text-xs font-black uppercase tracking-widest text-zinc-900 dark:text-white">
               Kategori Kacamata

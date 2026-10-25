@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { getImageUrl } from "@/lib/api";
 
 export default function HeroSlider() {
   const [banners, setBanners] = useState<any[]>([]);
@@ -12,9 +13,10 @@ export default function HeroSlider() {
   const touchEndX = useRef(0);
 
   useEffect(() => {
-    fetch("http://localhost/idvision/backend/api/banners/index.php")
+    fetch("/api/banners")
       .then((res) => res.json())
-      .then((data) => {
+      .then((resData) => {
+        const data = resData.data || resData;
         if (Array.isArray(data) && data.length > 0) {
           setBanners(data);
         } else {
@@ -92,18 +94,14 @@ export default function HeroSlider() {
       <div className="relative w-full">
         {/* CONTAINER SLIDER BANNER */}
         <div
-          className="relative w-full overflow-hidden rounded-3xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm select-none touch-pan-y group"
+          className="relative w-full overflow-hidden rounded-3xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xs select-none touch-pan-y group"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
           <div className="relative aspect-[21/9] sm:aspect-[24/9] min-h-[220px] sm:min-h-[320px] md:min-h-[400px] w-full flex items-center">
             {banners.map((s, i) => {
-              const imgUrl =
-                s.image.startsWith("http") || s.image.startsWith("/")
-                  ? s.image
-                  : `http://localhost/idvision/backend/uploads/banners/${s.image}`;
-
+              const imgUrl = getImageUrl(s.image, "banners");
               const destinationUrl = s.cta_link || "/products";
 
               return (
@@ -141,7 +139,7 @@ export default function HeroSlider() {
                   aria-label={`Go to slide ${i + 1}`}
                   className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                     i === current
-                      ? "w-7 bg-white shadow-sm"
+                      ? "w-7 bg-white shadow-xs"
                       : "w-2 bg-white/50 hover:bg-white/80"
                   }`}
                 />

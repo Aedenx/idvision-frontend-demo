@@ -1,145 +1,97 @@
-// Base URL Backend PHP Localhost Laragon
-const API_BASE_URL =
-  "https://f9de-103-83-179-182.ngrok-free.app/idvision/backend/api";
-const FETCH_HEADERS = {
-  Accept: "application/json",
-};
+import { fetchFromApi } from "./api";
 
-export interface Banner {
-  id: number;
-  title: string;
-  subtitle: string;
-  image: string;
-  cta_label: string;
-  cta_link: string;
-  sort_order: number;
-  is_active: boolean;
+export interface SiteSettings {
+  site_name: string;
+  site_description: string;
+  site_logo: string;
+  address: string;
+  phone: string;
+  email: string;
+  whatsapp_number: string;
+  [key: string]: string;
 }
 
 /**
- * Mengambil Informasi Toko & Footer
+ * Pengaturan default fallback jika database/API belum siap
  */
-export async function getSiteSettings(): Promise<Record<string, string>> {
-  try {
-    return {
-      site_name: "IDVISION",
-      address: "Jl. Pahlawan No. 15, Magelang, Jawa Tengah 56111",
-      phone: "0858-7766-9323",
-      email: "support@idvision.com",
-    };
-  } catch (error) {
-    console.error("Error fetching site settings:", error);
-    return {};
-  }
+export function getDefaultSettings(): SiteSettings {
+  return {
+    site_name: "IDVISION",
+    site_description: "Kacamata Gaya & Outdoor UV400 Protection",
+    site_logo: "/images/logo.png",
+    address: "Jl. Raya Puspiptek, Pamulang Viktor, Tangerang Selatan, Banten",
+    phone: "0858-7766-9323",
+    email: "support@idvisionstore.web.id",
+    whatsapp_number: "6285877669323",
+  };
 }
 
 /**
- * Mengambil Banner Carousel dari API PHP
+ * Mengambil pengaturan situs (site settings) dari API Route Next.js (`/api/settings`)
  */
-export async function getBanners(): Promise<Banner[]> {
+export async function getSiteSettings(): Promise<SiteSettings> {
   try {
-    const res = await fetch(`${API_BASE_URL}/banners/index.php`, {
-      cache: "no-store",
-      headers: FETCH_HEADERS,
-    });
-    if (!res.ok) return [];
+    const result = await fetchFromApi("/settings", { cache: "no-store" });
+    const rawSettings = result.data || result;
 
-    const result = await res.json();
-    return result.data || [];
-  } catch (error) {
-    console.error("Error fetching banners:", error);
-    return [];
-  }
-}
-
-/**
- * Mengambil Katalog Produk dari API PHP
- */
-export async function getProducts(params?: {
-  category?: string;
-  gender?: string;
-  search?: string;
-  sort?: string;
-  material_id?: string;
-  shape_id?: string;
-  page?: number;
-}) {
-  try {
-    const queryParams = new URLSearchParams();
-
-    // Mengambil parameter category/gender langsung sesuai slug database (pria, wanita, unisex, kids)
-    const categoryParam = params?.category || params?.gender;
-    if (categoryParam) {
-      queryParams.append("category", categoryParam.toLowerCase().trim());
-    }
-
-    // Mengirim parameter sorting ke backend
-    if (params?.sort) {
-      queryParams.append("sort", params.sort);
-    }
-
-    const url = `${API_BASE_URL}/products/index.php?${queryParams.toString()}`;
-    const res = await fetch(url, {
-      cache: "no-store",
-      headers: FETCH_HEADERS,
-    });
-
-    if (!res.ok) return { data: [] };
-
-    const result = await res.json();
-    const rawData = result.data || [];
-
-    // Transformasi data API PHP ke format yang dibaca oleh ProductCard & ProductsContent
-    let mappedData = rawData.map((item: any) => ({
-      id: item.product_id,
-      product_id: item.product_id,
-      name: item.name,
-      slug: item.slug,
-      sku: item.sku_base,
-      description: item.description,
-      price: Number(item.base_price || 0),
-      base_price: Number(item.base_price || 0),
-      discount_percent: Number(item.discount_percent || 0),
-      discount_price: item.discount_price ? Number(item.discount_price) : null,
-      gender: item.category_name || "Unisex",
-      category_name: item.category_name || "Unisex",
-      category_slug: item.category_slug || "",
-      image:
-        item.image_url ||
-        "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600",
-      image_url:
-        item.image_url ||
-        "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600",
-      stock: Number(item.total_stock || 0),
-      is_featured: Boolean(item.is_featured),
-    }));
-
-    // Filter jika ada parameter pencarian
-    if (params?.search && Array.isArray(mappedData)) {
-      let q = params.search.toLowerCase().trim();
-
-      if (q === "anak" || q === "anak-anak") q = "kids";
-
-      mappedData = mappedData.filter((p: any) => {
-        const nameMatch = p.name.toLowerCase().includes(q);
-        const skuMatch = p.sku ? p.sku.toLowerCase().includes(q) : false;
-        const categoryMatch = p.category_name.toLowerCase().includes(q);
-        const categorySlugMatch = p.category_slug.toLowerCase().includes(q);
-        const genderMatch = p.gender.toLowerCase().includes(q);
-
-        return (
-          nameMatch ||
-          skuMatch ||
-          categoryMatch ||
-          categorySlugMatch ||
-          genderMatch
-        );
+    if (Array.isArray(rawSettings)) {
+      const settingsMap: Record<string, string> = {};
+      rawSettings.forEach((item: any) => {
+        const key = item.key_name || item.key || item.setting_key;
+        const val = item.value || item.setting_value;
+        if (key) settingsMap[key] = val;
       });
+      return { ...getDefaultSettings(), ...settingsMap };
+    } else if (typeof rawSettings === "object" && rawSettings !== null) {
+      return { ...getDefaultSettings(), ...rawSettings };
     }
 
-    return { data: mappedData };
+    return getDefaultSettings();
   } catch (error) {
-    console.error("Error fetching products:", error);
-    return { data: [] };
+    console.error("Gagal mengambil pengaturan situs:", error);
+    return getDefaultSettings();
   }
 }
+
+/**
+ * Statik Banner, Testimoni, & Data Promosi Halaman Utama
+ */
+export const HERO_BANNERS = [
+  {
+    id: 1,
+    title: "Koleksi Kacamata Outdoor & Anti UV",
+    subtitle: "Perlindungan maksimal UV400 dengan desain modern dan elegan.",
+    image: "/images/hero-1.jpg",
+    cta_text: "Belanja Sekarang",
+    cta_link: "/products",
+  },
+  {
+    id: 2,
+    title: "Frame Ringan & Tahan Lama",
+    subtitle:
+      "Material TR90 dan Titanium kualitas tinggi untuk kenyamanan harian.",
+    image: "/images/hero-2.jpg",
+    cta_text: "Lihat Koleksi",
+    cta_link: "/products?category=sunglasses",
+  },
+];
+
+export const FEATURED_BENEFITS = [
+  {
+    icon: "ShieldCheck",
+    title: "Garansi 100% Original",
+    description: "Produk berkualitas tinggi dengan standar proteksi UV400.",
+  },
+  {
+    icon: "Truck",
+    title: "Pengiriman Cepat",
+    description:
+      "Siap kirim ke seluruh daerah Indonesia dengan packing aman bubble wrap.",
+  },
+  {
+    icon: "Headphones",
+    title: "Layanan Pelanggan CS",
+    description:
+      "Tim support responsif siap membantu konsultasi ukuran dan tipe kacamata.",
+  },
+];

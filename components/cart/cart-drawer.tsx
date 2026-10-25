@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
+import { getImageUrl } from "@/lib/api";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -93,12 +94,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             </div>
           ) : (
             cartItems.map((item) => {
-              const rawImage = item.image || "";
-              const itemImage = rawImage.startsWith("http")
-                ? rawImage
-                : rawImage
-                  ? `http://localhost/idvision/backend/uploads/products/${rawImage}`
-                  : "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600";
+              const itemImage = getImageUrl(item.image, "products");
 
               return (
                 <div
@@ -113,7 +109,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       className="h-full w-full object-contain object-center"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src =
-                          "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600";
+                          "/images/placeholder.jpg";
                       }}
                     />
                   </div>

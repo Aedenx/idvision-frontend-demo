@@ -46,23 +46,20 @@ function ReviewItemForm({
     setReviewError(null);
 
     try {
-      const res = await fetch(
-        "http://localhost/idvision/backend/api/reviews/create.php",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            order_id: orderId,
-            product_id: productId,
-            customer_name: customerName,
-            rating,
-            comment,
-          }),
-        },
-      );
+      const res = await fetch("/api/reviews/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          order_id: orderId,
+          product_id: productId,
+          customer_name: customerName,
+          rating,
+          comment,
+        }),
+      });
 
       const result = await res.json();
-      if (result.status === "success") {
+      if (result.success || result.status === "success") {
         setSubmitted(true);
       } else {
         setReviewError(result.message || "Gagal mengirimkan ulasan");
@@ -372,7 +369,7 @@ export default function CheckoutSuccessPage({
     setError(null);
     try {
       const res = await fetch(
-        `http://localhost/idvision/backend/api/orders/track.php?order_number=${orderNumber}`,
+        `/api/orders/track?order_number=${encodeURIComponent(orderNumber)}`,
       );
 
       if (!res.ok) {
@@ -381,7 +378,7 @@ export default function CheckoutSuccessPage({
 
       const result = await res.json();
 
-      if (result.status === "success") {
+      if (result.success || result.status === "success") {
         setOrder(result.data);
         setError(null);
       } else {
@@ -413,17 +410,14 @@ export default function CheckoutSuccessPage({
 
     setCanceling(true);
     try {
-      const res = await fetch(
-        "http://localhost/idvision/backend/api/orders/cancel.php",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ order_number: orderNumber }),
-        },
-      );
+      const res = await fetch("/api/orders/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_number: orderNumber }),
+      });
 
       const result = await res.json();
-      if (result.status === "success") {
+      if (result.success || result.status === "success") {
         alert("Pesanan berhasil dibatalkan!");
         fetchOrderStatus();
       } else {

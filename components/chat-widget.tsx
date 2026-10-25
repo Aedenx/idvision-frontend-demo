@@ -61,14 +61,14 @@ export default function ChatWidget() {
     const fetchMessages = async () => {
       try {
         const res = await fetch(
-          `http://localhost/idvision/backend/api/chat/get_messages.php?phone=${phone}`,
+          `/api/chat/messages?phone=${encodeURIComponent(phone)}`,
         );
         const result = await res.json();
-        if (result.status === "success") {
-          setMessages(result.data);
+        if (result.success || result.status === "success") {
+          setMessages(result.data || []);
         }
       } catch (err) {
-        console.error(err);
+        console.error("Gagal mengambil data chat:", err);
       }
     };
 
@@ -88,7 +88,7 @@ export default function ChatWidget() {
     if (!textToSend) setInputMessage("");
 
     try {
-      await fetch("http://localhost/idvision/backend/api/chat/send.php", {
+      await fetch("/api/chat/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -100,12 +100,14 @@ export default function ChatWidget() {
       });
 
       const res = await fetch(
-        `http://localhost/idvision/backend/api/chat/get_messages.php?phone=${phone}`,
+        `/api/chat/messages?phone=${encodeURIComponent(phone)}`,
       );
       const result = await res.json();
-      if (result.status === "success") setMessages(result.data);
+      if (result.success || result.status === "success") {
+        setMessages(result.data || []);
+      }
     } catch (err) {
-      console.error("Gagal mengirim pesan", err);
+      console.error("Gagal mengirim pesan:", err);
     }
   };
 
@@ -200,10 +202,12 @@ export default function ChatWidget() {
                           isMe ? "text-black/60" : "text-zinc-400"
                         }`}
                       >
-                        {new Date(m.created_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {m.created_at
+                          ? new Date(m.created_at).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : ""}
                       </span>
                     </div>
                   </div>

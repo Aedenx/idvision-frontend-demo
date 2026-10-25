@@ -28,7 +28,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      const savedCart = localStorage.getItem("idvision_cart");
+      const savedCart = localStorage.getItem("idvisionstore.web.id_cart");
       if (savedCart) {
         setItems(JSON.parse(savedCart));
       }
@@ -40,7 +40,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem("idvision_cart", JSON.stringify(items));
+      localStorage.setItem("idvisionstore.web.id_cart", JSON.stringify(items));
     }
   }, [items, isLoaded]);
 

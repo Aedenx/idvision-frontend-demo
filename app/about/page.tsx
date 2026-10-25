@@ -76,12 +76,13 @@ export default function AboutPage() {
   });
 
   useEffect(() => {
-    fetch("http://localhost/idvision/backend/api/products/index.php")
+    fetch("/api/products/index")
       .then((res) => res.json())
       .then((resData) => {
-        if (resData && resData.data) {
+        const productList = resData?.data || resData?.products || [];
+        if (Array.isArray(productList)) {
           setStats({
-            productsCount: resData.data.length || 12,
+            productsCount: productList.length || 12,
           });
         }
       })

@@ -31,7 +31,7 @@ export default function AccountPage() {
       const userData = JSON.parse(savedUser);
       setUser(userData);
 
-      const userKey = userData.id || userData.user_id || userData.email;
+      const userKey = userData.user_id || userData.id || userData.email;
 
       const savedAddresses = localStorage.getItem(
         `customer_addresses_${userKey}`,
@@ -56,7 +56,7 @@ export default function AccountPage() {
           id: "addr_1",
           label: "Rumah",
           recipient_name:
-            userData.name || userData.full_name || "Pelanggan IDVISION",
+            userData.full_name || userData.name || "Pelanggan IDVISION",
           phone: userData.phone || "08123456789",
           full_address: userData.address,
           is_primary: true,
@@ -75,21 +75,20 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (user) {
-      fetchOrders(user.id || user.user_id || "", user.email || "");
+      const userId = user.user_id || user.id || "";
+      if (userId) {
+        fetchOrders(userId);
+      }
     }
-  }, [user?.email]);
+  }, [user]);
 
-  const fetchOrders = async (userId: string, email: string) => {
+  const fetchOrders = async (userId: string) => {
     setLoadingOrders(true);
     try {
-      const res = await fetch(
-        `http://localhost/idvision/backend/api/orders/get_user_orders.php?user_id=${userId}&email=${encodeURIComponent(
-          email,
-        )}`,
-      );
+      const res = await fetch(`/api/orders/user?user_id=${userId}`);
       const data = await res.json();
-      if (data && data.success && Array.isArray(data.data)) {
-        setOrders(data.data);
+      if (data && data.success && Array.isArray(data.orders)) {
+        setOrders(data.orders);
       } else {
         setOrders([]);
       }
@@ -104,7 +103,7 @@ export default function AccountPage() {
   const handleSaveAddresses = (newList: Address[]) => {
     setAddresses(newList);
     if (user) {
-      const userKey = user.id || user.user_id || user.email;
+      const userKey = user.user_id || user.id || user.email;
 
       localStorage.setItem(
         `customer_addresses_${userKey}`,
@@ -130,7 +129,6 @@ export default function AccountPage() {
     localStorage.setItem("customer_user", JSON.stringify(updatedUser));
   };
 
-  // HANDLER LOGOUT DENGAN CONFIRMATION DIALOG MODERN
   const handleLogout = async () => {
     const isConfirmed = await showConfirmAlert(
       "Keluar dari Akun?",

@@ -21,7 +21,7 @@ const STORES = [
     phone: "085877669323",
     whatsapp: "6285877669323",
     hours: "Senin - Minggu: 09.00 - 21.00 WIB",
-    image: "http://localhost/idvision/uploads/store1.jpg",
+    image: "http://localhost/idvisionstore.web.id/uploads/store1.jpg",
     description:
       "Markas utama IDVISION dengan koleksi frame kacamata terlengkap dan layanan pemeriksaan mata presisi.",
     mapUrl:
@@ -37,7 +37,7 @@ const STORES = [
     phone: "+62 815-7590-6862",
     whatsapp: "6281575906862",
     hours: "Senin - Sabtu: 09.00 - 20.00 WIB",
-    image: "http://localhost/idvision/uploads/store2.jpg",
+    image: "http://localhost/idvisionstore.web.id/uploads/store2.jpg",
     description:
       "Outlet resmi cabang Magelang di Desa Sidomulyo, siap melayani kebutuhan kacamata gaya & outdoor.",
     mapUrl:

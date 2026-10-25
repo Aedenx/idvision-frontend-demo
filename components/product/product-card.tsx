@@ -28,7 +28,7 @@ export default function ProductCard({ product }: { product: ProductProps }) {
     (product.image && product.image.startsWith("http")
       ? product.image
       : product.image
-        ? `http://localhost/idvision/backend/uploads/products/${product.image}`
+        ? `http://localhost/idvisionstore.web.id/backend/uploads/products/${product.image}`
         : "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600");
 
   const originalPrice = Number(product.price || product.base_price || 0);
